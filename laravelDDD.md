@@ -236,31 +236,31 @@ volumes:
     }
     ```
 3. Crear las siguientes carpetas para los **Bounded Context**:
-    + ddd-boilerplate/src/admin
-    + ddd-boilerplate/src/platform
-    + ddd-boilerplate/src/landing
+    + 📁 ddd-boilerplate/src/admin
+    + 📁 ddd-boilerplate/src/platform
+    + 📁 ddd-boilerplate/src/landing
 4. Crear las carpetas de los modulos de los **Bounded Context**:
-    + ddd-boilerplate/src/admin/course
-    + ddd-boilerplate/src/admin/user
-    + ddd-boilerplate/src/platform/course
-    + ddd-boilerplate/src/platform/user
-    + ddd-boilerplate/src/platform/diploma
+    + 📁 ddd-boilerplate/src/admin/course
+    + 📁 ddd-boilerplate/src/admin/user
+    + 📁 ddd-boilerplate/src/platform/course
+    + 📁 ddd-boilerplate/src/platform/user
+    + 📁 ddd-boilerplate/src/platform/diploma
 5. Crear las carpetas de capas de aplicación, dominio e infraestructura de los modulos de los **Bounded Context**:
-    + ddd-boilerplate/src/platform/course/application
-    + ddd-boilerplate/src/platform/course/domain
-    + ddd-boilerplate/src/platform/course/infrastructure
-    + ddd-boilerplate/src/platform/user/application
-    + ddd-boilerplate/src/platform/user/domain
-    + ddd-boilerplate/src/platform/user/infrastructure
-    + ddd-boilerplate/src/platform/diploma/application
-    + ddd-boilerplate/src/platform/diploma/domain
-    + ddd-boilerplate/src/platform/diploma/infrastructure
+    + 📁 ddd-boilerplate/src/platform/course/application
+    + 📁 ddd-boilerplate/src/platform/course/domain
+    + 📁 ddd-boilerplate/src/platform/course/infrastructure
+    + 📁 ddd-boilerplate/src/platform/user/application
+    + 📁 ddd-boilerplate/src/platform/user/domain
+    + 📁 ddd-boilerplate/src/platform/user/infrastructure
+    + 📁 ddd-boilerplate/src/platform/diploma/application
+    + 📁 ddd-boilerplate/src/platform/diploma/domain
+    + 📁 ddd-boilerplate/src/platform/diploma/infrastructure
 5. Crear las carpetas de diferenciación en las capas de aplicación, dominio e infraestructura de los modulos de los **Bounded Context**:
-    + ddd-boilerplate/src/platform/user/infrastructure/routes
-    + ddd-boilerplate/src/platform/user/infrastructure/repository
-    + ddd-boilerplate/src/platform/user/infrastructure/observers
-    + ddd-boilerplate/src/platform/diploma/domain/entity
-    + ddd-boilerplate/src/platform/diploma/domain/valueObjects
+    + 📁 ddd-boilerplate/src/platform/user/infrastructure/routes
+    + 📁 ddd-boilerplate/src/platform/user/infrastructure/repository
+    + 📁 ddd-boilerplate/src/platform/user/infrastructure/observers
+    + 📁 ddd-boilerplate/src/platform/diploma/domain/entity
+    + 📁 ddd-boilerplate/src/platform/diploma/domain/valueObjects
 
 ## Crear la estructura de capas de aplicación
 1. Modificar **ddd-boilerplate/app/Models/User.php**:
@@ -374,5 +374,73 @@ volumes:
     ```bash
     php artisan make:ddd platform purchase
     ```
+    + Cambios realizados:
+        + Creación de la siguiete estructura de carpetas:
+            + ddd-boilerplate/src/platform/purchase
+                + 📁 application
+                + 📁 domain
+                    + 📁 contracts
+                    + 📁 entities
+                    + 📁 value_objects
+                + 📁 infrastructure
+                    + 📁 controllers
+                        + 📄 ExampleGETController.php
+                    + 📁 events
+                    + 📁 listeners
+                    + 📁 repositories
+                    + 📁 routes
+                        + 📄 api.php
+                    + 📁 validators
+                        + 📄 ExampleValidatorRequest.php
+        + **ddd-boilerplate/routes/api.php** (modificación):
+            ```php
+            // ...
+            Route::prefix('platform_purchase')->group(base_path('src/platform/purchase/infrastructure/routes/api.php'));
+            ```
+        + **ddd-boilerplate/src/platform/purchase/infrastructure/controllers/ExampleGETController.php** (creación):
+            ```php
+            <?php
 
+            namespace Src\platform\purchase\infrastructure\controllers;
 
+            use App\Http\Controllers\Controller;
+
+            final class ExampleGETController extends Controller {
+                public function index() { 
+                    // TODO: DDD Controller content here 
+                }
+            }
+            ```
+        + **ddd-boilerplate/src/platform/purchase/infrastructure/routes/api.php** (creación):
+            ```php
+            <?php
+
+            //use Src\platform\purchase\infrastructure\controllers\ExampleGETController;
+
+            // Simpele route example
+            // Route::get('/', [ExampleGETController::class, 'index']);
+
+            //Authenticathed route example
+            // Route::middleware(['auth:sanctum','activitylog'])->get('/', [ExampleGETController::class, 'index']);
+            ```
+        + **ddd-boilerplate/src/platform/purchase/infrastructure/validators/ExampleValidatorRequest.php** (creación):
+            ```php
+            <?php
+
+            namespace Src\platform\purchase\infrastructure\validators;
+
+            use Illuminate\Foundation\Http\FormRequest;
+
+            class ExampleValidatorRequest extends FormRequest
+            {
+                public function authorize() {
+                    return true;
+                }
+
+                public function rules() {
+                    return [
+                        'field' => 'nullable|max:255'
+                    ];
+                }
+            }            
+            ```
