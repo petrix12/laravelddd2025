@@ -445,14 +445,116 @@ volumes:
             }            
             ```
 
-## App cursos
-1. Crear un proyecto partiendo de la base del proyecto anterior.
+## Crear proyecto cursos
+1. Crear un proyecto partiendo de la base del proyecto anterior y nombarlo **app_cursos**.
 2. Ejecutar con:
     ```bash
     php artisan serve --port=8300
     ```
-3. Ejecutar:
+3. Preparar la estructura de **capas** (domain - application - infraestructure) **user** para el **Bounded Context** **admin**:
     ```bash
-    php artisan make:ddd platform admin user
+    php artisan make:ddd admin user
+    ```
+4. Modificar el archivo de rutas **app_cursos/routes/api.php**:
+    + Cambiar:
+        ```php
+        Route::prefix('admin_user')->group(base_path('src/admin/user/infrastructure/routes/api.php'));
+        ```
+    + Por:
+        ```php
+        Route::prefix('admin/user')->group(base_path('src/admin/user/infrastructure/routes/api.php'));
+        ```
+5. Crear los **value objects** para la clase **User** de la entidad **user**:
+    + UserName:
+        ```php title="UserName.php"
+        <?php
+
+        namespace Src\admin\user\domain\value_objects;
+
+        class UserName {
+            private string $name;
+
+            public function __construct(string $name) {
+                // Escribir todas las validaciones necesarias
+                if(strlen($name) < 3) {
+                    throw new \InvalidArgumentException('Name must be at least 3 characters long.');
+                }
+
+                // Si pasa todas las validaciones
+                $this->name = $name;
+            }
+
+            public function value(): string {
+                return $this->name;
+            }
+        }        
+        ```
+    + UserEmail:
+        ```php title="UserEmail.php"
+        <?php
+
+        namespace Src\admin\user\domain\value_objects;
+
+        class UserEmail {
+            private string $email;
+
+            public function __construct(string $email) {
+                // Escribir todas las validaciones necesarias
+                if(!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    throw new \InvalidArgumentException('Invalid email format.');
+                }
+
+                // Si pasa todas las validaciones
+                $this->email = $email;
+            }
+
+            public function value(): string {
+                return $this->email;
+            }
+        }        
+        ```
+6. Crear (generar) la entidad de la capa de dominio de **user** del Bounded Context **admin**:
+    ```php title="app_cursos/src/admin/user/domain/entities/User.php"
+    <?php
+
+    namespace Src\admin\user\domain\entities;
+
+    use Src\admin\user\domain\value_objects\UserName;
+    use Src\admin\user\domain\value_objects\UserEmail;
+
+    // Generación de la entidad
+    class User {
+        private int $id;
+        private UserName $name;
+        private UserEmail $email;
+
+        public function __construct(int $id, UserName $name, UserEmail $email) {
+            $this->id = $id;
+            $this->name = $name;
+            $this->email = $email;
+        }
+
+        public function name(): UserName {
+            return $this->name;
+        }
+
+        public function email(): UserEmail {
+            return $this->email;
+        }
+    }    
+    ```
+7. Crear (definir) contrato **UserRepositoryInterface**:
+    ```php title="app_cursos/src/admin/user/domain/contracts/UserRepositoryInterface.php"
+    <?php
+
+    namespace Src\admin\user\domain\contracts;
+
+    use Src\admin\user\domain\entities\User;
+
+    // Definición del contrato
+    interface UserRepositoryInterface {
+        public function findById(int $id): ? User;
+        public function save(User $user): void;
+    }
     ```
 

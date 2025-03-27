@@ -8,3 +8,5 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::prefix('platform_purchase')->group(base_path('src/platform/purchase/infrastructure/routes/api.php'));
+
+Route::prefix('admin_user')->group(base_path('src/admin/user/infrastructure/routes/api.php'));
