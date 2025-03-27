@@ -444,3 +444,15 @@ volumes:
                 }
             }            
             ```
+
+## App cursos
+1. Crear un proyecto partiendo de la base del proyecto anterior.
+2. Ejecutar con:
+    ```bash
+    php artisan serve --port=8300
+    ```
+3. Ejecutar:
+    ```bash
+    php artisan make:ddd platform admin user
+    ```
+
