@@ -179,8 +179,7 @@ volumes:
     + Would you like to run npm install and npm run build?: Yes
 6. Ejecutar dentro del contenedro para habilitar API:
     ```bash
-    php artisan api:install     # Opción 1
-    php artisan install:api     # Opción 2
+    php artisan install:api
     ```
     :::tip Nota
     En caso de que el camando artisan api no se ejecute, realizar la incorporación manualmente siguiendo los siguientes pasos:
@@ -221,7 +220,7 @@ volumes:
 
 ## Crear estructura del proyecto para adecuarlo a DDD
 1. Crear carpeta **ddd-boilerplate/src**.
-2. Modificar **ddd-boilerplate/composer.json**:
+2. Modificar **ddd-boilerplate/composer.json** para incorporar el directorio **src** al proyecto:
     ```json
     {
         // ...
@@ -445,26 +444,28 @@ volumes:
             }            
             ```
 
-## Crear proyecto cursos
+## Proyecto cursos
+### Crear proyecto
 1. Crear un proyecto partiendo de la base del proyecto anterior y nombarlo **app_cursos**.
 2. Ejecutar con:
     ```bash
     php artisan serve --port=8300
     ```
-3. Preparar la estructura de **capas** (domain - application - infraestructure) **user** para el **Bounded Context** **admin**:
+### Admin User
+1. Preparar la estructura de **capas** (domain - application - infraestructure) **user** para el **Bounded Context** **admin**:
     ```bash
     php artisan make:ddd admin user
     ```
-4. Modificar el archivo de rutas **app_cursos/routes/api.php**:
+2. Modificar el archivo de rutas **app_cursos/routes/api.php**:
     + Cambiar:
         ```php
-        Route::prefix('admin_user')->group(base_path('src/admin/user/infrastructure/routes/api.php'));
+        Route::prefix('admin/user')->group(base_path('src/admin/user/infrastructure/routes/api.php'));
         ```
     + Por:
         ```php
         Route::prefix('admin/user')->group(base_path('src/admin/user/infrastructure/routes/api.php'));
         ```
-5. Crear los **value objects** para la clase **User** de la entidad **user**:
+3. Crear los **value objects** para la clase **User** de la entidad **user**:
     + UserName:
         ```php title="UserName.php"
         <?php
@@ -513,7 +514,7 @@ volumes:
             }
         }        
         ```
-6. Crear (generar) la entidad de la capa de dominio de **user** del Bounded Context **admin**:
+4. Crear (generar) la entidad de la capa de dominio de **user** del Bounded Context **admin**:
     ```php title="app_cursos/src/admin/user/domain/entities/User.php"
     <?php
 
@@ -534,6 +535,10 @@ volumes:
             $this->email = $email;
         }
 
+        public function id(): int {
+            return $this->id;
+        }
+
         public function name(): UserName {
             return $this->name;
         }
@@ -543,7 +548,7 @@ volumes:
         }
     }    
     ```
-7. Crear (definir) contrato **UserRepositoryInterface**:
+5. Crear (definir) contrato **UserRepositoryInterface**:
     ```php title="app_cursos/src/admin/user/domain/contracts/UserRepositoryInterface.php"
     <?php
 
@@ -555,6 +560,162 @@ volumes:
     interface UserRepositoryInterface {
         public function findById(int $id): ? User;
         public function save(User $user): void;
+        // Aquí todos los casos de usos que sean necesarios
     }
     ```
+6. Definir el caso de uso para la creación de un usuario:
+    ```php title="app_cursos/src/admin/user/application/CreateUserUseCase.php"
+    <?php
 
+    namespace Src\admin\user\application;
+
+    use Src\admin\user\domain\contracts\UserRepositoryInterface;
+    use Src\admin\user\domain\entities\User;
+    use Src\admin\user\domain\value_objects\UserEmail;
+    use Src\admin\user\domain\value_objects\UserName;
+
+    class CreateUserUseCase {
+        private UserRepositoryInterface $userRepository;
+
+        public function __construct(UserRepositoryInterface $userRepository) {
+            $this->userRepository = $userRepository;
+        }
+
+        public function execute(int $id, string $name, string $email) {
+            $nameValueObject = new UserName($name);
+            $emailValueObject = new UserEmail($email);
+            $user = new User($id, $nameValueObject, $emailValueObject);
+            $this->userRepository->save($user);
+        }
+    }
+    ```
+7. Definir el caso de uso para buscar un usuario:
+    ```php title="app_cursos/src/admin/user/application/GetUserByIdUseCase.php"
+    <?php
+
+    namespace Src\admin\user\application;
+
+    use Src\admin\user\domain\contracts\UserRepositoryInterface;
+    use Src\admin\user\domain\entities\User;
+
+    class GetUserByIdUseCase {
+        private UserRepositoryInterface $userRepository;
+
+        public function __construct(UserRepositoryInterface $userRepository) {
+            $this->userRepository = $userRepository;
+        }
+
+        public function __invoke(int $id): ? User {
+            return $this->userRepository->findById($id);
+        }
+    }    
+    ```
+8. Crear validador **CreateUserRequest**:
+    ```php title="app_cursos/src/admin/user/infrastructure/validators/CreateUserRequest.php"
+    <?php
+
+    namespace Src\admin\user\infrastructure\validators;
+
+    use Illuminate\Foundation\Http\FormRequest;
+
+    class CreateUserRequest extends FormRequest
+    {
+        public function authorize() {
+            return true;
+        }
+
+        public function rules() {
+            return [
+                'id' => 'required',
+                'username' => 'required|max:255|min:3',
+                'email' => 'required|email|max:255|min:3'
+            ];
+        }
+    }    
+    ```
+9. Crear adapatador de Eloquent **EloquentUserRepository**:
+    ```php title="app_cursos/src/admin/user/infrastructure/repositories/EloquentUserRepository.php"
+    <?php
+
+    namespace Src\admin\user\infrastructure\repositories;
+
+    use App\Models\User as EloquentUser;
+    use Src\admin\user\domain\contracts\UserRepositoryInterface;
+    use Src\admin\user\domain\entities\User;
+    use Src\admin\user\domain\value_objects\UserEmail;
+    use Src\admin\user\domain\value_objects\UserName;
+
+    class EloquentUserRepository implements UserRepositoryInterface {
+        public function findById(int $id): ? User {
+            $user = EloquentUser::find($id);
+            
+            if(!$user) return null;
+            
+            return new User(
+                $user->id,
+                new UserName($user->name),
+                new UserEmail($user->email)
+            );
+        }
+
+        public function save(User $user): void {
+            EloquentUser::updateOrCreate(
+                ['id' => $user->id()],
+                ['username' => $user->name()->value()],
+                ['email' => $user->email()->value()]
+            );
+        }
+    }    
+    ```        
+10. Crear controlador **CreateUserPOSTController**:
+    ```php title="app_cursos/src/admin/user/infrastructure/controllers/CreateUserPOSTController.php"
+    <?php
+
+    namespace Src\admin\user\infrastructure\controllers;
+
+    use App\Http\Controllers\Controller;
+    use Src\admin\user\application\CreateUserUseCase;
+    use Src\admin\user\infrastructure\repositories\EloquentUserRepository;
+    use Src\admin\user\infrastructure\validators\CreateUserRequest;
+
+    final class CreateUserPOSTController extends Controller { 
+        public function index(CreateUserRequest $request) {
+            $createUserUseCase = new CreateUserUseCase(new EloquentUserRepository());
+            $createUserUseCase->execute($request->id, $request->username, $request->email);
+        }
+    }    
+    ```
+11. Crear controlador **GetUserByIdGETController**:
+    ```php title="app_cursos/src/admin/user/infrastructure/controllers/GetUserByIdGETController.php"
+    <?php
+
+    namespace Src\admin\user\infrastructure\controllers;
+
+    use App\Http\Controllers\Controller;
+    use Src\admin\user\application\GetUserByIdUseCase;
+    use Src\admin\user\infrastructure\repositories\EloquentUserRepository;
+
+    final class GetUserByIdGETController extends Controller { 
+        public function index($id) {
+            $getUserByIdUseCase = new GetUserByIdUseCase(new EloquentUserRepository());
+            $user = $getUserByIdUseCase($id);
+
+            return response()->json([
+                'status' => true,
+                'data' => $user,
+                'message' => 'success'
+            ]);
+        }
+    }    
+    ```
+12. Crear rutas para User:
+    ```php title="app_cursos/src/admin/user/infrastructure/routes/api.php"
+    <?php
+
+    use Src\admin\user\infrastructure\controllers\CreateUserPOSTController;
+    use Src\admin\user\infrastructure\controllers\GetUserByIdGETController;
+
+    Route::get('/{id}', [GetUserByIdGETController::class, 'index']);
+    Route::get('/store', [CreateUserPOSTController::class, 'index']);    
+    ```
+13. mmmm

@@ -8,4 +8,5 @@ use Src\admin\user\domain\entities\User;
 interface UserRepositoryInterface {
     public function findById(int $id): ? User;
     public function save(User $user): void;
+    // Aquí todos los casos de usos que sean necesarios
 }

@@ -17,6 +17,10 @@ class User {
         $this->email = $email;
     }
 
+    public function id(): int {
+        return $this->id;
+    }
+
     public function name(): UserName {
         return $this->name;
     }
